@@ -1,0 +1,2038 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cartnest · Reconciliation</title>
+<style>
+:root { --ink:#172033; --muted:#718096; --line:#e8edf4; --card:#fff; --bg:#f5f7fb; --navy:#152b4a; --blue:#3b82f6; --green:#159570; --amber:#d99016; --red:#d95757; }
+* { box-sizing:border-box } body { margin:0; color:var(--ink); background:var(--bg); font:14px Inter,Segoe UI,Arial,sans-serif }
+.shell { display:flex; min-height:100vh } .sidebar { width:232px; padding:26px 16px; background:var(--navy); color:#c9d4e4 }
+.brand { display:flex; align-items:center; gap:10px; color:#fff; font-weight:750; font-size:18px; margin:0 10px 42px }
+.brand-mark { display:grid; place-items:center; width:32px; height:32px; border-radius:10px; color:#fff; background:#3182ce }
+.nav-item { display:flex; gap:12px; align-items:center; margin:5px 0; padding:11px 12px; border-radius:9px; cursor:pointer } .nav-item:hover,.nav-item.active { color:#fff; background:#24466e }
+.side-note { margin:42px 10px 0; color:#8497b1; font-size:12px; line-height:1.6 }
+.main { flex:1; min-width:0; width:auto; max-width:1440px; padding:34px 38px 50px } .eyebrow { color:var(--blue); font-size:12px; font-weight:750; letter-spacing:.1em; text-transform:uppercase }
+h1 { margin:7px 0 5px; font-size:30px; letter-spacing:-.03em } .subtitle { margin:0; color:var(--muted) }
+.topline { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:28px }
+.pill { border:1px solid #cfe8df; color:#087f62; background:#effaf6; border-radius:20px; padding:9px 13px; font-size:12px; font-weight:700 }
+.grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin-bottom:20px }
+.card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; box-shadow:0 6px 20px rgba(30,55,90,.04) }
+.metric { display:flex; justify-content:space-between; align-items:flex-start } .metric-label { color:var(--muted); font-size:12px; font-weight:650 }
+.metric-value { margin:13px 0 7px; font-size:28px; font-weight:760; letter-spacing:-.04em } .metric-note { color:var(--muted); font-size:12px }
+.icon { display:grid; place-items:center; width:36px; height:36px; border-radius:10px; background:#edf4ff; color:var(--blue); font-size:18px }
+.icon.green { background:#eaf9f4; color:var(--green) } .icon.red { background:#fff0f0; color:var(--red) } .icon.amber { background:#fff7e8; color:var(--amber) }
+.two-col { display:grid; grid-template-columns:1.1fr .9fr; gap:20px; margin-bottom:20px } .card-title { margin:0; font-size:15px }
+.card-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px } .muted { color:var(--muted); font-size:12px }
+.health { display:flex; align-items:center; gap:22px } .ring { width:128px; height:128px; display:grid; place-items:center; border-radius:50%; background:conic-gradient(var(--green) 93.9%,#e8edf4 0) }
+.ring::after { content:""; width:94px; height:94px; border-radius:50%; background:#fff } .ring-value { position:absolute; font-size:22px; font-weight:760 }
+.legend { display:grid; gap:13px; flex:1 } .legend-row { display:flex; justify-content:space-between; color:var(--muted); font-size:12px } .legend-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px; background:var(--green) } .legend-dot.red { background:var(--red) }
+.bar-chart { display:grid; gap:10px } .bar-label { display:flex; justify-content:space-between; color:var(--muted); font-size:11px; margin-bottom:4px } .bar-label b { color:var(--ink); font-weight:650 }
+.bar-track { height:8px; border-radius:8px; background:#edf1f6; overflow:hidden } .bar-fill { height:100%; border-radius:8px; background:var(--blue) } .bar-fill.amount_mismatch,.bar-fill.missing_bank_credit { background:var(--red) }
+.table-card { padding:0; overflow:hidden } .table-head { padding:20px 20px 15px; display:flex; justify-content:space-between; gap:16px; align-items:center }
+.controls { display:flex; gap:8px } input,select { border:1px solid var(--line); border-radius:8px; padding:9px 11px; background:#fff; color:var(--ink); font:inherit; font-size:12px }
+input { width:200px } .table-wrap { overflow-x:auto } table { border-collapse:collapse; width:100%; min-width:760px } th,td { padding:13px 20px; border-top:1px solid var(--line); text-align:left; white-space:nowrap } th { color:var(--muted); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; background:#fbfcfe } td { font-size:13px }
+.amount { text-align:right; font-variant-numeric:tabular-nums } .negative { color:var(--red) } .status { display:inline-flex; border-radius:16px; padding:5px 9px; font-size:11px; font-weight:700; text-transform:capitalize } .status.matched { color:#087f62; background:#eaf9f4 } .status.exception,.status.amount_mismatch,.status.missing_bank_credit,.status.short_paid,.status.missing { color:#b42318; background:#fff0f0 } .status.due_in_october { color:#9a6700; background:#fff7e8 }
+.view { display:none } .view.active { display:block } .view.active .topline { display:flex }
+@media (max-width:950px) { .sidebar { display:none } .main { padding:25px 18px } .grid { grid-template-columns:repeat(2,minmax(0,1fr)) } .two-col { grid-template-columns:1fr } }
+@media (max-width:560px) { .grid { grid-template-columns:1fr } .topline,.table-head { align-items:flex-start; flex-direction:column } .controls,input { width:100% } .controls { flex-direction:column; width:100% } }
+</style></head><body>
+<div class="shell"><aside class="sidebar"><div class="brand"><span class="brand-mark">↗</span>Cartnest</div>
+<div class="nav-item active" data-view="reconciliation">▦ <span>Reconciliation</span></div><div class="nav-item" data-view="settlements">◷ <span>Settlements</span></div><div class="nav-item" data-view="exceptions">⚠ <span>Exceptions</span></div>
+<div class="side-note">Payment operations<br><strong>September–October 2026</strong></div></aside>
+<main class="main"><section id="reconciliation" class="view active"><div class="topline"><div><div class="eyebrow">Finance operations</div><h1>Payment reconciliation</h1><p class="subtitle">Monitor gateway captures, fees, and bank settlement receipts.</p></div><div class="pill">● Reconciliation overview</div></div>
+<section class="grid">
+<div class="card"><div class="metric"><span class="metric-label">Total orders</span><span class="icon">▦</span></div><div class="metric-value">6,000</div><div class="metric-note">Across all order statuses</div></div>
+<div class="card"><div class="metric"><span class="metric-label">Gateway transactions</span><span class="icon">↗</span></div><div class="metric-value">5,752</div><div class="metric-note">Captures and refunds processed</div></div>
+<div class="card"><div class="metric"><span class="metric-label">Transaction exceptions</span><span class="icon red">!</span></div><div class="metric-value">351</div><div class="metric-note">Requires transaction review</div></div>
+<div class="card"><div class="metric"><span class="metric-label">Settlement exceptions</span><span class="icon amber">◒</span></div><div class="metric-value">9</div><div class="metric-note">Across 30 settlement batches</div></div>
+</section>
+<section class="two-col"><div class="card"><div class="card-head"><h2 class="card-title">Reconciliation health</h2><span class="muted">Transaction-level</span></div>
+<div class="health"><div style="position:relative"><div class="ring"></div><div class="ring-value" style="position:absolute;inset:0;display:grid;place-items:center">93.9%</div></div>
+<div class="legend"><div class="legend-row"><span><i class="legend-dot"></i>Matched transactions</span><strong>5,401</strong></div><div class="legend-row"><span><i class="legend-dot red"></i>Exceptions</span><strong>351</strong></div><div class="legend-row"><span>Review tolerance</span><strong>₹0.02</strong></div></div></div></div>
+<div class="card"><div class="card-head"><h2 class="card-title">Recent settlement batches</h2><span class="muted">Last 10</span></div><div class="bar-chart"><div class="bar-item"><div class="bar-label"><span>20260923</span>
+        <b>Matched</b></div>
+        <div class="bar-track"><div class="bar-fill matched" style="width:73.6%"></div></div></div><div class="bar-item"><div class="bar-label"><span>20260924</span>
+        <b>Matched</b></div>
+        <div class="bar-track"><div class="bar-fill matched" style="width:67.2%"></div></div></div><div class="bar-item"><div class="bar-label"><span>20260925</span>
+        <b>Matched</b></div>
+        <div class="bar-track"><div class="bar-fill matched" style="width:67.2%"></div></div></div><div class="bar-item"><div class="bar-label"><span>20260926</span>
+        <b>Review</b></div>
+        <div class="bar-track"><div class="bar-fill short_paid" style="width:79.6%"></div></div></div><div class="bar-item"><div class="bar-label"><span>20260927</span>
+        <b>Matched</b></div>
+        <div class="bar-track"><div class="bar-fill matched" style="width:82.4%"></div></div></div><div class="bar-item"><div class="bar-label"><span>20260928</span>
+        <b>Review</b></div>
+        <div class="bar-track"><div class="bar-fill short_paid" style="width:72.8%"></div></div></div><div class="bar-item"><div class="bar-label"><span>20260929</span>
+        <b>Matched</b></div>
+        <div class="bar-track"><div class="bar-fill matched" style="width:78.0%"></div></div></div><div class="bar-item"><div class="bar-label"><span>20260930</span>
+        <b>Review</b></div>
+        <div class="bar-track"><div class="bar-fill short_paid" style="width:77.6%"></div></div></div><div class="bar-item"><div class="bar-label"><span>20261001</span>
+        <b>Review</b></div>
+        <div class="bar-track"><div class="bar-fill due_in_october" style="width:76.4%"></div></div></div><div class="bar-item"><div class="bar-label"><span>20261002</span>
+        <b>Review</b></div>
+        <div class="bar-track"><div class="bar-fill due_in_october" style="width:98.0%"></div></div></div></div></div></section>
+<section class="card table-card"><div class="table-head"><div><h2 class="card-title">Settlement reconciliation</h2><span class="muted">Gateway expected net compared with bank credits</span></div><div class="controls"><input id="search" placeholder="Search batch..." aria-label="Search batches"><select id="statusFilter" aria-label="Filter status"><option value="all">All statuses</option><option value="matched">Matched</option><option value="amount_mismatch">Amount mismatch</option><option value="missing_bank_credit">Missing credit</option></select></div></div>
+<div class="table-wrap"><table><thead><tr><th>Batch</th><th>Transactions</th><th class="amount">Expected net</th><th class="amount">Bank credit</th><th class="amount">Difference</th><th>Status</th></tr></thead><tbody id="batchRows"><tr data-status="matched">
+        <td><strong>STL-20260903</strong></td>
+        <td>129</td>
+        <td class="amount">₹463,778.55</td>
+        <td class="amount">₹463,778.55</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260904</strong></td>
+        <td>201</td>
+        <td class="amount">₹680,913.82</td>
+        <td class="amount">₹680,913.82</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260905</strong></td>
+        <td>190</td>
+        <td class="amount">₹578,249.99</td>
+        <td class="amount">₹578,249.99</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260906</strong></td>
+        <td>198</td>
+        <td class="amount">₹655,139.18</td>
+        <td class="amount">₹655,139.18</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260907</strong></td>
+        <td>183</td>
+        <td class="amount">₹614,451.50</td>
+        <td class="amount">₹614,451.50</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260908</strong></td>
+        <td>192</td>
+        <td class="amount">₹704,983.27</td>
+        <td class="amount">₹704,983.27</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="short_paid">
+        <td><strong>STL-20260909</strong></td>
+        <td>189</td>
+        <td class="amount">₹608,094.07</td>
+        <td class="amount">₹606,316.51</td>
+        <td class="amount negative">₹-1,777.56</td>
+        <td><span class="status short_paid">short paid</span></td>
+        </tr><tr data-status="short_paid">
+        <td><strong>STL-20260910</strong></td>
+        <td>211</td>
+        <td class="amount">₹743,788.25</td>
+        <td class="amount">₹740,734.12</td>
+        <td class="amount negative">₹-3,054.13</td>
+        <td><span class="status short_paid">short paid</span></td>
+        </tr><tr data-status="short_paid">
+        <td><strong>STL-20260911</strong></td>
+        <td>175</td>
+        <td class="amount">₹556,411.99</td>
+        <td class="amount">₹555,161.99</td>
+        <td class="amount negative">₹-1,250.00</td>
+        <td><span class="status short_paid">short paid</span></td>
+        </tr><tr data-status="missing">
+        <td><strong>STL-20260912</strong></td>
+        <td>192</td>
+        <td class="amount">₹551,074.03</td>
+        <td class="amount">—</td>
+        <td class="amount ">—</td>
+        <td><span class="status missing">missing</span></td>
+        </tr><tr data-status="short_paid">
+        <td><strong>STL-20260913</strong></td>
+        <td>218</td>
+        <td class="amount">₹657,742.11</td>
+        <td class="amount">₹654,313.30</td>
+        <td class="amount negative">₹-3,428.81</td>
+        <td><span class="status short_paid">short paid</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260914</strong></td>
+        <td>183</td>
+        <td class="amount">₹596,289.91</td>
+        <td class="amount">₹596,289.91</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260915</strong></td>
+        <td>223</td>
+        <td class="amount">₹773,297.25</td>
+        <td class="amount">₹773,297.25</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260916</strong></td>
+        <td>203</td>
+        <td class="amount">₹614,772.68</td>
+        <td class="amount">₹614,772.68</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260917</strong></td>
+        <td>203</td>
+        <td class="amount">₹671,270.49</td>
+        <td class="amount">₹671,270.49</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260918</strong></td>
+        <td>170</td>
+        <td class="amount">₹589,645.35</td>
+        <td class="amount">₹589,645.35</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260919</strong></td>
+        <td>176</td>
+        <td class="amount">₹610,773.29</td>
+        <td class="amount">₹610,773.29</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="short_paid">
+        <td><strong>STL-20260920</strong></td>
+        <td>182</td>
+        <td class="amount">₹555,503.46</td>
+        <td class="amount">₹548,940.41</td>
+        <td class="amount negative">₹-6,563.05</td>
+        <td><span class="status short_paid">short paid</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260921</strong></td>
+        <td>200</td>
+        <td class="amount">₹592,258.61</td>
+        <td class="amount">₹592,258.61</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260922</strong></td>
+        <td>202</td>
+        <td class="amount">₹584,876.78</td>
+        <td class="amount">₹584,876.78</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260923</strong></td>
+        <td>184</td>
+        <td class="amount">₹590,273.39</td>
+        <td class="amount">₹590,273.39</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260924</strong></td>
+        <td>168</td>
+        <td class="amount">₹540,644.22</td>
+        <td class="amount">₹540,644.22</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260925</strong></td>
+        <td>168</td>
+        <td class="amount">₹594,966.59</td>
+        <td class="amount">₹594,966.59</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="short_paid">
+        <td><strong>STL-20260926</strong></td>
+        <td>199</td>
+        <td class="amount">₹712,227.92</td>
+        <td class="amount">₹711,251.32</td>
+        <td class="amount negative">₹-976.60</td>
+        <td><span class="status short_paid">short paid</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260927</strong></td>
+        <td>206</td>
+        <td class="amount">₹805,057.10</td>
+        <td class="amount">₹805,057.10</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="short_paid">
+        <td><strong>STL-20260928</strong></td>
+        <td>182</td>
+        <td class="amount">₹574,053.87</td>
+        <td class="amount">₹569,672.43</td>
+        <td class="amount negative">₹-4,381.44</td>
+        <td><span class="status short_paid">short paid</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260929</strong></td>
+        <td>195</td>
+        <td class="amount">₹641,930.73</td>
+        <td class="amount">₹641,930.73</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="short_paid">
+        <td><strong>STL-20260930</strong></td>
+        <td>194</td>
+        <td class="amount">₹699,067.08</td>
+        <td class="amount">₹694,085.78</td>
+        <td class="amount negative">₹-4,981.30</td>
+        <td><span class="status short_paid">short paid</span></td>
+        </tr><tr data-status="due_in_october">
+        <td><strong>STL-20261001</strong></td>
+        <td>191</td>
+        <td class="amount">₹650,622.70</td>
+        <td class="amount">—</td>
+        <td class="amount ">—</td>
+        <td><span class="status due_in_october">due in october</span></td>
+        </tr><tr data-status="due_in_october">
+        <td><strong>STL-20261002</strong></td>
+        <td>245</td>
+        <td class="amount">₹614,904.20</td>
+        <td class="amount">—</td>
+        <td class="amount ">—</td>
+        <td><span class="status due_in_october">due in october</span></td>
+        </tr></tbody></table></div></section>
+</section>
+<section class="two-col"><div class="card"><div class="card-head"><h2 class="card-title">Sales to cash bridge</h2><span class="muted">₹ values</span></div><div class="table-wrap"><table><thead><tr><th>Bridge item</th><th class="amount">Amount</th><th>Explanation</th></tr></thead><tbody><tr><td>Paid order sales</td><td class='amount'>₹18,984,402.00</td><td>Paid orders in order system</td></tr><tr><td>Less: paid orders without gateway capture</td><td class='amount'>₹-67,617.00</td><td>20 paid orders have no payment</td></tr><tr><td>Gateway amount differences on linked paid orders</td><td class='amount'>₹-3,145.00</td><td>First capture versus order amount</td></tr><tr><td>Duplicate capture charges</td><td class='amount'>₹44,927.00</td><td>Additional captures for the same paid order</td></tr><tr><td>Captures for refunded orders</td><td class='amount'>₹915,889.00</td><td>Captured before refund status</td></tr><tr><td>Captures with failed, cancelled, or missing orders</td><td class='amount'>₹53,679.00</td><td>Gateway records without valid paid order</td></tr><tr><td>Gateway capture gross</td><td class='amount'>₹19,928,135.00</td><td>Control total</td></tr><tr><td>Less: gateway refunds</td><td class='amount'>₹-893,888.00</td><td>Refund transactions</td></tr><tr><td>Gateway net before fees</td><td class='amount'>₹19,034,247.00</td><td>Captures less refunds</td></tr><tr><td>MDR and GST retained by gateway</td><td class='amount'>₹-207,184.62</td><td>Gateway gross-to-net fees</td></tr><tr><td>Gateway net settlement expected</td><td class='amount'>₹18,827,062.38</td><td>Expected bank receipts</td></tr><tr><td>Cash received in bank during statement period</td><td class='amount'>₹16,984,048.56</td><td>Matched gateway credits only</td></tr><tr><td>Unreceived / timing difference</td><td class='amount'>₹-1,843,013.82</td><td>Includes short-paid, missing, and October-due batches</td></tr></tbody></table></div></div>
+<div class="card"><div class="card-head"><h2 class="card-title">Exceptions by type</h2><span class="muted">Count and value</span></div><div class="table-wrap"><table><thead><tr><th>Type</th><th>Count</th><th class="amount">Value</th></tr></thead><tbody><tr><td>amount difference</td><td>15</td><td class='amount'>₹3,145.00</td></tr><tr><td>capture after refund</td><td>243</td><td class='amount'>₹915,889.00</td></tr><tr><td>duplicate charge</td><td>16</td><td class='amount'>₹50,925.00</td></tr><tr><td>mdr gst overcharge</td><td>55</td><td class='amount'>₹1,185.20</td></tr><tr><td>paid order without payment</td><td>20</td><td class='amount'>₹67,617.00</td></tr><tr><td>payment against failed cancelled</td><td>8</td><td class='amount'>₹28,687.00</td></tr><tr><td>payment without order</td><td>8</td><td class='amount'>₹24,992.00</td></tr><tr><td>refund status mismatch</td><td>7</td><td class='amount'>₹13,886.00</td></tr><tr><td>settlement missing</td><td>1</td><td class='amount'>₹551,074.03</td></tr><tr><td>settlement short paid</td><td>8</td><td class='amount'>₹26,412.89</td></tr></tbody></table></div></div></section>
+<section class="card table-card"><div class="table-head"><div><h2 class="card-title">Daily settlements vs bank</h2><span class="muted">Batch-level daily control</span></div></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Batch</th><th class="amount">Gateway expected</th><th class="amount">Bank received</th><th>Status</th></tr></thead><tbody><tr><td>2026-09-03</td><td>STL-20260903</td><td class='amount'>₹463,778.55</td><td class='amount'>₹463,778.55</td><td><span class='status matched'>matched</span></td></tr><tr><td>2026-09-04</td><td>STL-20260904</td><td class='amount'>₹680,913.82</td><td class='amount'>₹680,913.82</td><td><span class='status matched'>matched</span></td></tr><tr><td>2026-09-05</td><td>STL-20260905</td><td class='amount'>₹578,249.99</td><td class='amount'>₹578,249.99</td><td><span class='status matched'>matched</span></td></tr><tr><td>2026-09-06</td><td>STL-20260906</td><td class='amount'>₹655,139.18</td><td class='amount'>₹655,139.18</td><td><span class='status matched'>matched</span></td></tr><tr><td>2026-09-07</td><td>STL-20260907</td><td class='amount'>₹614,451.50</td><td class='amount'>₹614,451.50</td><td><span class='status matched'>matched</span></td></tr><tr><td>2026-09-08</td><td>STL-20260908</td><td class='amount'>₹704,983.27</td><td class='amount'>₹704,983.27</td><td><span class='status matched'>matched</span></td></tr><tr><td>2026-09-09</td><td>STL-20260909</td><td class='amount'>₹608,094.07</td><td class='amount'>₹606,316.51</td><td><span class='status short_paid'>short paid</span></td></tr><tr><td>2026-09-10</td><td>STL-20260910</td><td class='amount'>₹743,788.25</td><td class='amount'>₹740,734.12</td><td><span class='status short_paid'>short paid</span></td></tr><tr><td>2026-09-11</td><td>STL-20260911</td><td class='amount'>₹556,411.99</td><td class='amount'>₹555,161.99</td><td><span class='status short_paid'>short paid</span></td></tr><tr><td>2026-09-12</td><td>STL-20260912</td><td class='amount'>₹551,074.03</td><td class='amount'>—</td><td><span class='status missing'>missing</span></td></tr><tr><td>2026-09-13</td><td>STL-20260913</td><td class='amount'>₹657,742.11</td><td class='amount'>₹654,313.30</td><td><span class='status short_paid'>short paid</span></td></tr><tr><td>2026-09-14</td><td>STL-20260914</td><td class='amount'>₹596,289.91</td><td class='amount'>₹596,289.91</td><td><span class='status matched'>matched</span></td></tr><tr><td>2026-09-15</td><td>STL-20260915</td><td class='amount'>₹773,297.25</td><td class='amount'>₹773,297.25</td><td><span class='status matched'>matched</span></td></tr><tr><td>2026-09-16</td><td>STL-20260916</td><td class='amount'>₹614,772.68</td><td class='amount'>₹614,772.68</td><td><span class='status matched'>matched</span></td></tr><tr><td>2026-09-17</td><td>STL-20260917</td><td class='amount'>₹671,270.49</td><td class='amount'>₹671,270.49</td><td><span class='status matched'>matched</span></td></tr><tr><td>2026-09-18</td><td>STL-20260918</td><td class='amount'>₹589,645.35</td><td class='amount'>₹589,645.35</td><td><span class='status matched'>matched</span></td></tr><tr><td>2026-09-19</td><td>STL-20260919</td><td class='amount'>₹610,773.29</td><td class='amount'>₹610,773.29</td><td><span class='status matched'>matched</span></td></tr><tr><td>2026-09-20</td><td>STL-20260920</td><td class='amount'>₹555,503.46</td><td class='amount'>₹548,940.41</td><td><span class='status short_paid'>short paid</span></td></tr><tr><td>2026-09-21</td><td>STL-20260921</td><td class='amount'>₹592,258.61</td><td class='amount'>₹592,258.61</td><td><span class='status matched'>matched</span></td></tr><tr><td>2026-09-22</td><td>STL-20260922</td><td class='amount'>₹584,876.78</td><td class='amount'>₹584,876.78</td><td><span class='status matched'>matched</span></td></tr><tr><td>2026-09-23</td><td>STL-20260923</td><td class='amount'>₹590,273.39</td><td class='amount'>₹590,273.39</td><td><span class='status matched'>matched</span></td></tr><tr><td>2026-09-24</td><td>STL-20260924</td><td class='amount'>₹540,644.22</td><td class='amount'>₹540,644.22</td><td><span class='status matched'>matched</span></td></tr><tr><td>2026-09-25</td><td>STL-20260925</td><td class='amount'>₹594,966.59</td><td class='amount'>₹594,966.59</td><td><span class='status matched'>matched</span></td></tr><tr><td>2026-09-26</td><td>STL-20260926</td><td class='amount'>₹712,227.92</td><td class='amount'>₹711,251.32</td><td><span class='status short_paid'>short paid</span></td></tr><tr><td>2026-09-27</td><td>STL-20260927</td><td class='amount'>₹805,057.10</td><td class='amount'>₹805,057.10</td><td><span class='status matched'>matched</span></td></tr><tr><td>2026-09-28</td><td>STL-20260928</td><td class='amount'>₹574,053.87</td><td class='amount'>₹569,672.43</td><td><span class='status short_paid'>short paid</span></td></tr><tr><td>2026-09-29</td><td>STL-20260929</td><td class='amount'>₹641,930.73</td><td class='amount'>₹641,930.73</td><td><span class='status matched'>matched</span></td></tr><tr><td>2026-09-30</td><td>STL-20260930</td><td class='amount'>₹699,067.08</td><td class='amount'>₹694,085.78</td><td><span class='status short_paid'>short paid</span></td></tr><tr><td>2026-10-01</td><td>STL-20261001</td><td class='amount'>₹650,622.70</td><td class='amount'>—</td><td><span class='status due_in_october'>due in october</span></td></tr><tr><td>2026-10-02</td><td>STL-20261002</td><td class='amount'>₹614,904.20</td><td class='amount'>—</td><td><span class='status due_in_october'>due in october</span></td></tr></tbody></table></div></section>
+<section id="settlements" class="view"><div class="topline"><div><div class="eyebrow">Finance operations</div><h1>Settlements</h1><p class="subtitle">Review gateway settlement batches and bank receipts.</p></div><div class="pill">● 30 batches</div></div>
+<section class="card table-card"><div class="table-head"><div><h2 class="card-title">Settlement batches</h2><span class="muted">Full settlement register</span></div><div class="controls"><input id="settlementSearch" placeholder="Search batch..." aria-label="Search settlement batches"></div></div>
+<div class="table-wrap"><table><thead><tr><th>Batch</th><th>Transactions</th><th class="amount">Expected net</th><th class="amount">Bank credit</th><th class="amount">Difference</th><th>Status</th></tr></thead><tbody><tr data-status="matched">
+        <td><strong>STL-20260903</strong></td>
+        <td>129</td>
+        <td class="amount">₹463,778.55</td>
+        <td class="amount">₹463,778.55</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260904</strong></td>
+        <td>201</td>
+        <td class="amount">₹680,913.82</td>
+        <td class="amount">₹680,913.82</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260905</strong></td>
+        <td>190</td>
+        <td class="amount">₹578,249.99</td>
+        <td class="amount">₹578,249.99</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260906</strong></td>
+        <td>198</td>
+        <td class="amount">₹655,139.18</td>
+        <td class="amount">₹655,139.18</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260907</strong></td>
+        <td>183</td>
+        <td class="amount">₹614,451.50</td>
+        <td class="amount">₹614,451.50</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260908</strong></td>
+        <td>192</td>
+        <td class="amount">₹704,983.27</td>
+        <td class="amount">₹704,983.27</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="short_paid">
+        <td><strong>STL-20260909</strong></td>
+        <td>189</td>
+        <td class="amount">₹608,094.07</td>
+        <td class="amount">₹606,316.51</td>
+        <td class="amount negative">₹-1,777.56</td>
+        <td><span class="status short_paid">short paid</span></td>
+        </tr><tr data-status="short_paid">
+        <td><strong>STL-20260910</strong></td>
+        <td>211</td>
+        <td class="amount">₹743,788.25</td>
+        <td class="amount">₹740,734.12</td>
+        <td class="amount negative">₹-3,054.13</td>
+        <td><span class="status short_paid">short paid</span></td>
+        </tr><tr data-status="short_paid">
+        <td><strong>STL-20260911</strong></td>
+        <td>175</td>
+        <td class="amount">₹556,411.99</td>
+        <td class="amount">₹555,161.99</td>
+        <td class="amount negative">₹-1,250.00</td>
+        <td><span class="status short_paid">short paid</span></td>
+        </tr><tr data-status="missing">
+        <td><strong>STL-20260912</strong></td>
+        <td>192</td>
+        <td class="amount">₹551,074.03</td>
+        <td class="amount">—</td>
+        <td class="amount ">—</td>
+        <td><span class="status missing">missing</span></td>
+        </tr><tr data-status="short_paid">
+        <td><strong>STL-20260913</strong></td>
+        <td>218</td>
+        <td class="amount">₹657,742.11</td>
+        <td class="amount">₹654,313.30</td>
+        <td class="amount negative">₹-3,428.81</td>
+        <td><span class="status short_paid">short paid</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260914</strong></td>
+        <td>183</td>
+        <td class="amount">₹596,289.91</td>
+        <td class="amount">₹596,289.91</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260915</strong></td>
+        <td>223</td>
+        <td class="amount">₹773,297.25</td>
+        <td class="amount">₹773,297.25</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260916</strong></td>
+        <td>203</td>
+        <td class="amount">₹614,772.68</td>
+        <td class="amount">₹614,772.68</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260917</strong></td>
+        <td>203</td>
+        <td class="amount">₹671,270.49</td>
+        <td class="amount">₹671,270.49</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260918</strong></td>
+        <td>170</td>
+        <td class="amount">₹589,645.35</td>
+        <td class="amount">₹589,645.35</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260919</strong></td>
+        <td>176</td>
+        <td class="amount">₹610,773.29</td>
+        <td class="amount">₹610,773.29</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="short_paid">
+        <td><strong>STL-20260920</strong></td>
+        <td>182</td>
+        <td class="amount">₹555,503.46</td>
+        <td class="amount">₹548,940.41</td>
+        <td class="amount negative">₹-6,563.05</td>
+        <td><span class="status short_paid">short paid</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260921</strong></td>
+        <td>200</td>
+        <td class="amount">₹592,258.61</td>
+        <td class="amount">₹592,258.61</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260922</strong></td>
+        <td>202</td>
+        <td class="amount">₹584,876.78</td>
+        <td class="amount">₹584,876.78</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260923</strong></td>
+        <td>184</td>
+        <td class="amount">₹590,273.39</td>
+        <td class="amount">₹590,273.39</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260924</strong></td>
+        <td>168</td>
+        <td class="amount">₹540,644.22</td>
+        <td class="amount">₹540,644.22</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260925</strong></td>
+        <td>168</td>
+        <td class="amount">₹594,966.59</td>
+        <td class="amount">₹594,966.59</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="short_paid">
+        <td><strong>STL-20260926</strong></td>
+        <td>199</td>
+        <td class="amount">₹712,227.92</td>
+        <td class="amount">₹711,251.32</td>
+        <td class="amount negative">₹-976.60</td>
+        <td><span class="status short_paid">short paid</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260927</strong></td>
+        <td>206</td>
+        <td class="amount">₹805,057.10</td>
+        <td class="amount">₹805,057.10</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="short_paid">
+        <td><strong>STL-20260928</strong></td>
+        <td>182</td>
+        <td class="amount">₹574,053.87</td>
+        <td class="amount">₹569,672.43</td>
+        <td class="amount negative">₹-4,381.44</td>
+        <td><span class="status short_paid">short paid</span></td>
+        </tr><tr data-status="matched">
+        <td><strong>STL-20260929</strong></td>
+        <td>195</td>
+        <td class="amount">₹641,930.73</td>
+        <td class="amount">₹641,930.73</td>
+        <td class="amount ">₹0.00</td>
+        <td><span class="status matched">matched</span></td>
+        </tr><tr data-status="short_paid">
+        <td><strong>STL-20260930</strong></td>
+        <td>194</td>
+        <td class="amount">₹699,067.08</td>
+        <td class="amount">₹694,085.78</td>
+        <td class="amount negative">₹-4,981.30</td>
+        <td><span class="status short_paid">short paid</span></td>
+        </tr><tr data-status="due_in_october">
+        <td><strong>STL-20261001</strong></td>
+        <td>191</td>
+        <td class="amount">₹650,622.70</td>
+        <td class="amount">—</td>
+        <td class="amount ">—</td>
+        <td><span class="status due_in_october">due in october</span></td>
+        </tr><tr data-status="due_in_october">
+        <td><strong>STL-20261002</strong></td>
+        <td>245</td>
+        <td class="amount">₹614,904.20</td>
+        <td class="amount">—</td>
+        <td class="amount ">—</td>
+        <td><span class="status due_in_october">due in october</span></td>
+        </tr></tbody></table></div></section></section>
+<section id="exceptions" class="view"><div class="topline"><div><div class="eyebrow">Finance operations</div><h1>Exceptions</h1><p class="subtitle">Investigate transactions and settlements that need attention.</p></div><div class="pill">381 items to review</div></div>
+<section class="card table-card"><div class="table-head"><div><h2 class="card-title">Exception register</h2><span class="muted">Prioritised reconciliation issues</span></div><div class="controls"><input id="exceptionSearch" placeholder="Search exceptions..." aria-label="Search exceptions"></div></div>
+<div class="table-wrap"><table><thead><tr><th>Type</th><th>Reference</th><th>Settlement batch</th><th class="amount">Amount</th><th>Details</th></tr></thead><tbody><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000065</strong></td>
+        <td>STL-20260903</td>
+        <td class="amount">₹56.15</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001351</strong></td>
+        <td>STL-20260903</td>
+        <td class="amount">₹9,297.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002425</strong></td>
+        <td>STL-20260903</td>
+        <td class="amount">₹1,648.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002554</strong></td>
+        <td>STL-20260903</td>
+        <td class="amount">₹1,799.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004896</strong></td>
+        <td>STL-20260903</td>
+        <td class="amount">₹599.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005055</strong></td>
+        <td>STL-20260903</td>
+        <td class="amount">₹2,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005094</strong></td>
+        <td>STL-20260903</td>
+        <td class="amount">₹2,999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005740</strong></td>
+        <td>STL-20260903</td>
+        <td class="amount">₹7,999.00</td>
+        <td>payment without order</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000585</strong></td>
+        <td>STL-20260904</td>
+        <td class="amount">₹2.83</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000700</strong></td>
+        <td>STL-20260904</td>
+        <td class="amount">₹28.89</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001362</strong></td>
+        <td>STL-20260904</td>
+        <td class="amount">₹19.80</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001582</strong></td>
+        <td>STL-20260904</td>
+        <td class="amount">₹1,798.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002763</strong></td>
+        <td>STL-20260904</td>
+        <td class="amount">₹20.65</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003553</strong></td>
+        <td>STL-20260904</td>
+        <td class="amount">₹2,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004202</strong></td>
+        <td>STL-20260904</td>
+        <td class="amount">₹66.08</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005319</strong></td>
+        <td>STL-20260904</td>
+        <td class="amount">₹5.31</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000735</strong></td>
+        <td>STL-20260905</td>
+        <td class="amount">₹798.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001488</strong></td>
+        <td>STL-20260905</td>
+        <td class="amount">₹1.77</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001970</strong></td>
+        <td>STL-20260905</td>
+        <td class="amount">₹698.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002852</strong></td>
+        <td>STL-20260905</td>
+        <td class="amount">₹5,998.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003253</strong></td>
+        <td>STL-20260905</td>
+        <td class="amount">₹2.12</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003495</strong></td>
+        <td>STL-20260905</td>
+        <td class="amount">₹1.06</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003538</strong></td>
+        <td>STL-20260905</td>
+        <td class="amount">₹3,298.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003990</strong></td>
+        <td>STL-20260905</td>
+        <td class="amount">₹7,999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004700</strong></td>
+        <td>STL-20260905</td>
+        <td class="amount">₹1,299.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005214</strong></td>
+        <td>STL-20260905</td>
+        <td class="amount">₹799.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000253</strong></td>
+        <td>STL-20260906</td>
+        <td class="amount">₹399.00</td>
+        <td>amount difference</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000284</strong></td>
+        <td>STL-20260906</td>
+        <td class="amount">₹5,998.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000741</strong></td>
+        <td>STL-20260906</td>
+        <td class="amount">₹6,897.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001387</strong></td>
+        <td>STL-20260906</td>
+        <td class="amount">₹1,798.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002662</strong></td>
+        <td>STL-20260906</td>
+        <td class="amount">₹6.37</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003384</strong></td>
+        <td>STL-20260906</td>
+        <td class="amount">₹7,999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003748</strong></td>
+        <td>STL-20260906</td>
+        <td class="amount">₹6,797.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004553</strong></td>
+        <td>STL-20260906</td>
+        <td class="amount">₹7,999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005104</strong></td>
+        <td>STL-20260906</td>
+        <td class="amount">₹3,798.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005213</strong></td>
+        <td>STL-20260906</td>
+        <td class="amount">₹36.32</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005294</strong></td>
+        <td>STL-20260906</td>
+        <td class="amount">₹8,298.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000486</strong></td>
+        <td>STL-20260907</td>
+        <td class="amount">₹8,598.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001439</strong></td>
+        <td>STL-20260907</td>
+        <td class="amount">₹1,098.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001631</strong></td>
+        <td>STL-20260907</td>
+        <td class="amount">₹28.91</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001878</strong></td>
+        <td>STL-20260907</td>
+        <td class="amount">₹1,198.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002345</strong></td>
+        <td>STL-20260907</td>
+        <td class="amount">₹3,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003659</strong></td>
+        <td>STL-20260907</td>
+        <td class="amount">₹999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004809</strong></td>
+        <td>STL-20260907</td>
+        <td class="amount">₹1,799.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000496</strong></td>
+        <td>STL-20260908</td>
+        <td class="amount">₹5,998.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001057</strong></td>
+        <td>STL-20260908</td>
+        <td class="amount">₹1,798.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001429</strong></td>
+        <td>STL-20260908</td>
+        <td class="amount">₹5,097.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002343</strong></td>
+        <td>STL-20260908</td>
+        <td class="amount">₹4,498.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002379</strong></td>
+        <td>STL-20260908</td>
+        <td class="amount">₹3,298.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002799</strong></td>
+        <td>STL-20260908</td>
+        <td class="amount">₹8,498.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002813</strong></td>
+        <td>STL-20260908</td>
+        <td class="amount">₹18.98</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004348</strong></td>
+        <td>STL-20260908</td>
+        <td class="amount">₹3,798.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004787</strong></td>
+        <td>STL-20260908</td>
+        <td class="amount">₹7,999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005331</strong></td>
+        <td>STL-20260908</td>
+        <td class="amount">₹31.37</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005733</strong></td>
+        <td>STL-20260908</td>
+        <td class="amount">₹4,298.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005739</strong></td>
+        <td>STL-20260908</td>
+        <td class="amount">₹999.00</td>
+        <td>payment without order</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000156</strong></td>
+        <td>STL-20260909</td>
+        <td class="amount">₹499.00</td>
+        <td>duplicate charge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000344</strong></td>
+        <td>STL-20260909</td>
+        <td class="amount">₹28.91</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001391</strong></td>
+        <td>STL-20260909</td>
+        <td class="amount">₹799.00</td>
+        <td>duplicate charge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001469</strong></td>
+        <td>STL-20260909</td>
+        <td class="amount">₹149.00</td>
+        <td>amount difference</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001623</strong></td>
+        <td>STL-20260909</td>
+        <td class="amount">₹18.56</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001915</strong></td>
+        <td>STL-20260909</td>
+        <td class="amount">₹500.00</td>
+        <td>amount difference</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002293</strong></td>
+        <td>STL-20260909</td>
+        <td class="amount">₹500.00</td>
+        <td>amount difference</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002418</strong></td>
+        <td>STL-20260909</td>
+        <td class="amount">₹12,297.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002818</strong></td>
+        <td>STL-20260909</td>
+        <td class="amount">₹5,348.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003017</strong></td>
+        <td>STL-20260909</td>
+        <td class="amount">₹1,799.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005050</strong></td>
+        <td>STL-20260909</td>
+        <td class="amount">₹499.00</td>
+        <td>duplicate charge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005219</strong></td>
+        <td>STL-20260909</td>
+        <td class="amount">₹4,999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005738</strong></td>
+        <td>STL-20260909</td>
+        <td class="amount">₹1,299.00</td>
+        <td>payment without order</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000552</strong></td>
+        <td>STL-20260910</td>
+        <td class="amount">₹1,299.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000804</strong></td>
+        <td>STL-20260910</td>
+        <td class="amount">₹1,798.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000874</strong></td>
+        <td>STL-20260910</td>
+        <td class="amount">₹8,797.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001029</strong></td>
+        <td>STL-20260910</td>
+        <td class="amount">₹5,348.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002007</strong></td>
+        <td>STL-20260910</td>
+        <td class="amount">₹12,997.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002046</strong></td>
+        <td>STL-20260910</td>
+        <td class="amount">₹9,998.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002313</strong></td>
+        <td>STL-20260910</td>
+        <td class="amount">₹3,098.00</td>
+        <td>duplicate charge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002422</strong></td>
+        <td>STL-20260910</td>
+        <td class="amount">₹3,098.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002758</strong></td>
+        <td>STL-20260910</td>
+        <td class="amount">₹3,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002948</strong></td>
+        <td>STL-20260910</td>
+        <td class="amount">₹250.00</td>
+        <td>amount difference</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003268</strong></td>
+        <td>STL-20260910</td>
+        <td class="amount">₹10,097.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003786</strong></td>
+        <td>STL-20260910</td>
+        <td class="amount">₹1,499.00</td>
+        <td>duplicate charge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003797</strong></td>
+        <td>STL-20260910</td>
+        <td class="amount">₹799.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004248</strong></td>
+        <td>STL-20260910</td>
+        <td class="amount">₹6,797.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004384</strong></td>
+        <td>STL-20260910</td>
+        <td class="amount">₹4,999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005349</strong></td>
+        <td>STL-20260910</td>
+        <td class="amount">₹1,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005737</strong></td>
+        <td>STL-20260910</td>
+        <td class="amount">₹1,799.00</td>
+        <td>payment without order</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>rfnd_S34BUU715YB8</strong></td>
+        <td>STL-20260910</td>
+        <td class="amount">₹2,999.00</td>
+        <td>refund status mismatch</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>rfnd_UZA2SKW6FGBE</strong></td>
+        <td>STL-20260910</td>
+        <td class="amount">₹1,647.00</td>
+        <td>refund status mismatch</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000185</strong></td>
+        <td>STL-20260911</td>
+        <td class="amount">₹9,798.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000564</strong></td>
+        <td>STL-20260911</td>
+        <td class="amount">₹3,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000851</strong></td>
+        <td>STL-20260911</td>
+        <td class="amount">₹999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001033</strong></td>
+        <td>STL-20260911</td>
+        <td class="amount">₹2,098.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001466</strong></td>
+        <td>STL-20260911</td>
+        <td class="amount">₹2,097.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001540</strong></td>
+        <td>STL-20260911</td>
+        <td class="amount">₹3,798.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001609</strong></td>
+        <td>STL-20260911</td>
+        <td class="amount">₹200.00</td>
+        <td>amount difference</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002399</strong></td>
+        <td>STL-20260911</td>
+        <td class="amount">₹4,297.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003569</strong></td>
+        <td>STL-20260911</td>
+        <td class="amount">₹1.77</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003937</strong></td>
+        <td>STL-20260911</td>
+        <td class="amount">₹349.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000474</strong></td>
+        <td>STL-20260912</td>
+        <td class="amount">₹299.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001239</strong></td>
+        <td>STL-20260912</td>
+        <td class="amount">₹3,098.00</td>
+        <td>payment against failed cancelled</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001455</strong></td>
+        <td>STL-20260912</td>
+        <td class="amount">₹20.65</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001773</strong></td>
+        <td>STL-20260912</td>
+        <td class="amount">₹948.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001988</strong></td>
+        <td>STL-20260912</td>
+        <td class="amount">₹3,098.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002071</strong></td>
+        <td>STL-20260912</td>
+        <td class="amount">₹1,598.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002112</strong></td>
+        <td>STL-20260912</td>
+        <td class="amount">₹2,147.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002140</strong></td>
+        <td>STL-20260912</td>
+        <td class="amount">₹2,798.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002888</strong></td>
+        <td>STL-20260912</td>
+        <td class="amount">₹1,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003506</strong></td>
+        <td>STL-20260912</td>
+        <td class="amount">₹9,498.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003707</strong></td>
+        <td>STL-20260912</td>
+        <td class="amount">₹1,299.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003724</strong></td>
+        <td>STL-20260912</td>
+        <td class="amount">₹3,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003823</strong></td>
+        <td>STL-20260912</td>
+        <td class="amount">₹7,999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004580</strong></td>
+        <td>STL-20260912</td>
+        <td class="amount">₹7,297.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000051</strong></td>
+        <td>STL-20260913</td>
+        <td class="amount">₹2,999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001556</strong></td>
+        <td>STL-20260913</td>
+        <td class="amount">₹2,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002689</strong></td>
+        <td>STL-20260913</td>
+        <td class="amount">₹2,848.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002731</strong></td>
+        <td>STL-20260913</td>
+        <td class="amount">₹1,299.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002854</strong></td>
+        <td>STL-20260913</td>
+        <td class="amount">₹3,447.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003136</strong></td>
+        <td>STL-20260913</td>
+        <td class="amount">₹3.17</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003430</strong></td>
+        <td>STL-20260913</td>
+        <td class="amount">₹2,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003610</strong></td>
+        <td>STL-20260913</td>
+        <td class="amount">₹599.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003814</strong></td>
+        <td>STL-20260913</td>
+        <td class="amount">₹3,348.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004708</strong></td>
+        <td>STL-20260913</td>
+        <td class="amount">₹499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005044</strong></td>
+        <td>STL-20260913</td>
+        <td class="amount">₹798.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005120</strong></td>
+        <td>STL-20260913</td>
+        <td class="amount">₹1,799.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005425</strong></td>
+        <td>STL-20260913</td>
+        <td class="amount">₹999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005435</strong></td>
+        <td>STL-20260913</td>
+        <td class="amount">₹3,499.00</td>
+        <td>duplicate charge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000891</strong></td>
+        <td>STL-20260914</td>
+        <td class="amount">₹1.77</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001366</strong></td>
+        <td>STL-20260914</td>
+        <td class="amount">₹1,799.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001806</strong></td>
+        <td>STL-20260914</td>
+        <td class="amount">₹3,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002320</strong></td>
+        <td>STL-20260914</td>
+        <td class="amount">₹2,298.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002835</strong></td>
+        <td>STL-20260914</td>
+        <td class="amount">₹999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004071</strong></td>
+        <td>STL-20260914</td>
+        <td class="amount">₹1.06</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004286</strong></td>
+        <td>STL-20260914</td>
+        <td class="amount">₹2,098.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004325</strong></td>
+        <td>STL-20260914</td>
+        <td class="amount">₹1,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005181</strong></td>
+        <td>STL-20260914</td>
+        <td class="amount">₹1,798.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005216</strong></td>
+        <td>STL-20260914</td>
+        <td class="amount">₹2,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005428</strong></td>
+        <td>STL-20260914</td>
+        <td class="amount">₹12,998.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005741</strong></td>
+        <td>STL-20260914</td>
+        <td class="amount">₹599.00</td>
+        <td>payment without order</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000137</strong></td>
+        <td>STL-20260915</td>
+        <td class="amount">₹15,997.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000359</strong></td>
+        <td>STL-20260915</td>
+        <td class="amount">₹3,098.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000404</strong></td>
+        <td>STL-20260915</td>
+        <td class="amount">₹2.12</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000819</strong></td>
+        <td>STL-20260915</td>
+        <td class="amount">₹7,998.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000971</strong></td>
+        <td>STL-20260915</td>
+        <td class="amount">₹149.00</td>
+        <td>amount difference</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001700</strong></td>
+        <td>STL-20260915</td>
+        <td class="amount">₹11,797.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002540</strong></td>
+        <td>STL-20260915</td>
+        <td class="amount">₹2.12</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002839</strong></td>
+        <td>STL-20260915</td>
+        <td class="amount">₹2,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003523</strong></td>
+        <td>STL-20260915</td>
+        <td class="amount">₹2,499.00</td>
+        <td>payment against failed cancelled</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003922</strong></td>
+        <td>STL-20260915</td>
+        <td class="amount">₹4,999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004572</strong></td>
+        <td>STL-20260915</td>
+        <td class="amount">₹299.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004739</strong></td>
+        <td>STL-20260915</td>
+        <td class="amount">₹1,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005142</strong></td>
+        <td>STL-20260915</td>
+        <td class="amount">₹2.12</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005406</strong></td>
+        <td>STL-20260915</td>
+        <td class="amount">₹200.00</td>
+        <td>amount difference</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005482</strong></td>
+        <td>STL-20260915</td>
+        <td class="amount">₹799.00</td>
+        <td>duplicate charge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005724</strong></td>
+        <td>STL-20260915</td>
+        <td class="amount">₹4,897.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000130</strong></td>
+        <td>STL-20260916</td>
+        <td class="amount">₹599.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000274</strong></td>
+        <td>STL-20260916</td>
+        <td class="amount">₹1,898.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000557</strong></td>
+        <td>STL-20260916</td>
+        <td class="amount">₹3,897.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001247</strong></td>
+        <td>STL-20260916</td>
+        <td class="amount">₹7,999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001464</strong></td>
+        <td>STL-20260916</td>
+        <td class="amount">₹1,798.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001863</strong></td>
+        <td>STL-20260916</td>
+        <td class="amount">₹999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002226</strong></td>
+        <td>STL-20260916</td>
+        <td class="amount">₹4,097.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002916</strong></td>
+        <td>STL-20260916</td>
+        <td class="amount">₹999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003001</strong></td>
+        <td>STL-20260916</td>
+        <td class="amount">₹1.77</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003272</strong></td>
+        <td>STL-20260916</td>
+        <td class="amount">₹1,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003566</strong></td>
+        <td>STL-20260916</td>
+        <td class="amount">₹6,298.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003791</strong></td>
+        <td>STL-20260916</td>
+        <td class="amount">₹56.14</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005085</strong></td>
+        <td>STL-20260916</td>
+        <td class="amount">₹3,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000282</strong></td>
+        <td>STL-20260917</td>
+        <td class="amount">₹8,798.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000309</strong></td>
+        <td>STL-20260917</td>
+        <td class="amount">₹299.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000347</strong></td>
+        <td>STL-20260917</td>
+        <td class="amount">₹4,999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001135</strong></td>
+        <td>STL-20260917</td>
+        <td class="amount">₹12,297.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001683</strong></td>
+        <td>STL-20260917</td>
+        <td class="amount">₹2,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001957</strong></td>
+        <td>STL-20260917</td>
+        <td class="amount">₹599.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002543</strong></td>
+        <td>STL-20260917</td>
+        <td class="amount">₹799.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003121</strong></td>
+        <td>STL-20260917</td>
+        <td class="amount">₹2.83</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003590</strong></td>
+        <td>STL-20260917</td>
+        <td class="amount">₹24.78</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000655</strong></td>
+        <td>STL-20260918</td>
+        <td class="amount">₹598.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000750</strong></td>
+        <td>STL-20260918</td>
+        <td class="amount">₹999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001065</strong></td>
+        <td>STL-20260918</td>
+        <td class="amount">₹2,999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001117</strong></td>
+        <td>STL-20260918</td>
+        <td class="amount">₹3,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001328</strong></td>
+        <td>STL-20260918</td>
+        <td class="amount">₹2,598.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001456</strong></td>
+        <td>STL-20260918</td>
+        <td class="amount">₹11,597.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003329</strong></td>
+        <td>STL-20260918</td>
+        <td class="amount">₹50.00</td>
+        <td>amount difference</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003405</strong></td>
+        <td>STL-20260918</td>
+        <td class="amount">₹5,597.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004144</strong></td>
+        <td>STL-20260918</td>
+        <td class="amount">₹4,897.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005539</strong></td>
+        <td>STL-20260918</td>
+        <td class="amount">₹648.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000621</strong></td>
+        <td>STL-20260919</td>
+        <td class="amount">₹149.00</td>
+        <td>amount difference</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001417</strong></td>
+        <td>STL-20260919</td>
+        <td class="amount">₹1,498.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001612</strong></td>
+        <td>STL-20260919</td>
+        <td class="amount">₹61.93</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002005</strong></td>
+        <td>STL-20260919</td>
+        <td class="amount">₹349.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003281</strong></td>
+        <td>STL-20260919</td>
+        <td class="amount">₹2,298.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003481</strong></td>
+        <td>STL-20260919</td>
+        <td class="amount">₹2,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003988</strong></td>
+        <td>STL-20260919</td>
+        <td class="amount">₹499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004458</strong></td>
+        <td>STL-20260919</td>
+        <td class="amount">₹2,998.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005520</strong></td>
+        <td>STL-20260919</td>
+        <td class="amount">₹12,998.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005657</strong></td>
+        <td>STL-20260919</td>
+        <td class="amount">₹1,298.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000806</strong></td>
+        <td>STL-20260920</td>
+        <td class="amount">₹599.00</td>
+        <td>duplicate charge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001316</strong></td>
+        <td>STL-20260920</td>
+        <td class="amount">₹2,999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002697</strong></td>
+        <td>STL-20260920</td>
+        <td class="amount">₹4,597.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004113</strong></td>
+        <td>STL-20260920</td>
+        <td class="amount">₹5,998.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004113</strong></td>
+        <td>STL-20260920</td>
+        <td class="amount">₹5,998.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004113</strong></td>
+        <td>STL-20260920</td>
+        <td class="amount">₹5,998.00</td>
+        <td>duplicate charge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004133</strong></td>
+        <td>STL-20260920</td>
+        <td class="amount">₹24.78</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004191</strong></td>
+        <td>STL-20260920</td>
+        <td class="amount">₹31.37</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004471</strong></td>
+        <td>STL-20260920</td>
+        <td class="amount">₹13,597.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004620</strong></td>
+        <td>STL-20260920</td>
+        <td class="amount">₹7,999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005042</strong></td>
+        <td>STL-20260920</td>
+        <td class="amount">₹3,147.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000484</strong></td>
+        <td>STL-20260921</td>
+        <td class="amount">₹8,998.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000491</strong></td>
+        <td>STL-20260921</td>
+        <td class="amount">₹149.00</td>
+        <td>amount difference</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000657</strong></td>
+        <td>STL-20260921</td>
+        <td class="amount">₹83.82</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001666</strong></td>
+        <td>STL-20260921</td>
+        <td class="amount">₹2,999.00</td>
+        <td>payment against failed cancelled</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002028</strong></td>
+        <td>STL-20260921</td>
+        <td class="amount">₹999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002030</strong></td>
+        <td>STL-20260921</td>
+        <td class="amount">₹2,999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002205</strong></td>
+        <td>STL-20260921</td>
+        <td class="amount">₹2,498.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002994</strong></td>
+        <td>STL-20260921</td>
+        <td class="amount">₹100.00</td>
+        <td>amount difference</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004168</strong></td>
+        <td>STL-20260921</td>
+        <td class="amount">₹499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004298</strong></td>
+        <td>STL-20260921</td>
+        <td class="amount">₹49.54</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004659</strong></td>
+        <td>STL-20260921</td>
+        <td class="amount">₹4.60</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000368</strong></td>
+        <td>STL-20260922</td>
+        <td class="amount">₹3,798.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000390</strong></td>
+        <td>STL-20260922</td>
+        <td class="amount">₹7,297.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001023</strong></td>
+        <td>STL-20260922</td>
+        <td class="amount">₹1.77</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001348</strong></td>
+        <td>STL-20260922</td>
+        <td class="amount">₹50.00</td>
+        <td>amount difference</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001661</strong></td>
+        <td>STL-20260922</td>
+        <td class="amount">₹200.00</td>
+        <td>amount difference</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001848</strong></td>
+        <td>STL-20260922</td>
+        <td class="amount">₹6,298.00</td>
+        <td>payment against failed cancelled</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002279</strong></td>
+        <td>STL-20260922</td>
+        <td class="amount">₹4,797.00</td>
+        <td>duplicate charge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003655</strong></td>
+        <td>STL-20260922</td>
+        <td class="amount">₹2,697.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003898</strong></td>
+        <td>STL-20260922</td>
+        <td class="amount">₹499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003986</strong></td>
+        <td>STL-20260922</td>
+        <td class="amount">₹52.01</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004115</strong></td>
+        <td>STL-20260922</td>
+        <td class="amount">₹3,348.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004321</strong></td>
+        <td>STL-20260922</td>
+        <td class="amount">₹1,848.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004671</strong></td>
+        <td>STL-20260922</td>
+        <td class="amount">₹3,897.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004822</strong></td>
+        <td>STL-20260922</td>
+        <td class="amount">₹799.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005046</strong></td>
+        <td>STL-20260922</td>
+        <td class="amount">₹5.83</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>rfnd_38BLG666PDTT</strong></td>
+        <td>STL-20260922</td>
+        <td class="amount">₹3,797.00</td>
+        <td>refund status mismatch</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>rfnd_7H6AS93MDQFB</strong></td>
+        <td>STL-20260922</td>
+        <td class="amount">₹648.00</td>
+        <td>refund status mismatch</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000018</strong></td>
+        <td>STL-20260923</td>
+        <td class="amount">₹2,598.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000122</strong></td>
+        <td>STL-20260923</td>
+        <td class="amount">₹1,298.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000176</strong></td>
+        <td>STL-20260923</td>
+        <td class="amount">₹43.76</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000204</strong></td>
+        <td>STL-20260923</td>
+        <td class="amount">₹11,497.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000306</strong></td>
+        <td>STL-20260923</td>
+        <td class="amount">₹4,999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000576</strong></td>
+        <td>STL-20260923</td>
+        <td class="amount">₹1,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002068</strong></td>
+        <td>STL-20260923</td>
+        <td class="amount">₹2,298.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002620</strong></td>
+        <td>STL-20260923</td>
+        <td class="amount">₹3,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003493</strong></td>
+        <td>STL-20260923</td>
+        <td class="amount">₹999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004607</strong></td>
+        <td>STL-20260923</td>
+        <td class="amount">₹8,998.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005255</strong></td>
+        <td>STL-20260923</td>
+        <td class="amount">₹599.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005662</strong></td>
+        <td>STL-20260923</td>
+        <td class="amount">₹1,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000364</strong></td>
+        <td>STL-20260924</td>
+        <td class="amount">₹499.00</td>
+        <td>payment against failed cancelled</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000602</strong></td>
+        <td>STL-20260924</td>
+        <td class="amount">₹2,298.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000989</strong></td>
+        <td>STL-20260924</td>
+        <td class="amount">₹3,097.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001104</strong></td>
+        <td>STL-20260924</td>
+        <td class="amount">₹499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001358</strong></td>
+        <td>STL-20260924</td>
+        <td class="amount">₹27.64</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001983</strong></td>
+        <td>STL-20260924</td>
+        <td class="amount">₹1,998.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002207</strong></td>
+        <td>STL-20260924</td>
+        <td class="amount">₹2,298.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002330</strong></td>
+        <td>STL-20260924</td>
+        <td class="amount">₹2.29</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003884</strong></td>
+        <td>STL-20260924</td>
+        <td class="amount">₹2,798.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004836</strong></td>
+        <td>STL-20260924</td>
+        <td class="amount">₹999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005313</strong></td>
+        <td>STL-20260924</td>
+        <td class="amount">₹7.07</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>rfnd_EQPEBWZT3LE3</strong></td>
+        <td>STL-20260924</td>
+        <td class="amount">₹1,799.00</td>
+        <td>refund status mismatch</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000027</strong></td>
+        <td>STL-20260925</td>
+        <td class="amount">₹1,299.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000394</strong></td>
+        <td>STL-20260925</td>
+        <td class="amount">₹1,498.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000769</strong></td>
+        <td>STL-20260925</td>
+        <td class="amount">₹1,799.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001088</strong></td>
+        <td>STL-20260925</td>
+        <td class="amount">₹100.00</td>
+        <td>amount difference</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001933</strong></td>
+        <td>STL-20260925</td>
+        <td class="amount">₹2,897.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002200</strong></td>
+        <td>STL-20260925</td>
+        <td class="amount">₹5,298.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003410</strong></td>
+        <td>STL-20260925</td>
+        <td class="amount">₹45.41</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003550</strong></td>
+        <td>STL-20260925</td>
+        <td class="amount">₹349.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004576</strong></td>
+        <td>STL-20260925</td>
+        <td class="amount">₹8,298.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004784</strong></td>
+        <td>STL-20260925</td>
+        <td class="amount">₹1,299.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005242</strong></td>
+        <td>STL-20260925</td>
+        <td class="amount">₹2.12</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005652</strong></td>
+        <td>STL-20260925</td>
+        <td class="amount">₹1,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005713</strong></td>
+        <td>STL-20260925</td>
+        <td class="amount">₹1,998.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005742</strong></td>
+        <td>STL-20260925</td>
+        <td class="amount">₹3,499.00</td>
+        <td>payment without order</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001496</strong></td>
+        <td>STL-20260926</td>
+        <td class="amount">₹3,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001548</strong></td>
+        <td>STL-20260926</td>
+        <td class="amount">₹8,348.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002048</strong></td>
+        <td>STL-20260926</td>
+        <td class="amount">₹999.00</td>
+        <td>duplicate charge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002912</strong></td>
+        <td>STL-20260926</td>
+        <td class="amount">₹1,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003556</strong></td>
+        <td>STL-20260926</td>
+        <td class="amount">₹3,298.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004751</strong></td>
+        <td>STL-20260926</td>
+        <td class="amount">₹1.06</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004846</strong></td>
+        <td>STL-20260926</td>
+        <td class="amount">₹3,597.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005169</strong></td>
+        <td>STL-20260926</td>
+        <td class="amount">₹1,799.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000218</strong></td>
+        <td>STL-20260927</td>
+        <td class="amount">₹1,198.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000586</strong></td>
+        <td>STL-20260927</td>
+        <td class="amount">₹70.19</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000809</strong></td>
+        <td>STL-20260927</td>
+        <td class="amount">₹1,299.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001005</strong></td>
+        <td>STL-20260927</td>
+        <td class="amount">₹1,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001514</strong></td>
+        <td>STL-20260927</td>
+        <td class="amount">₹4,097.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001686</strong></td>
+        <td>STL-20260927</td>
+        <td class="amount">₹2,798.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001732</strong></td>
+        <td>STL-20260927</td>
+        <td class="amount">₹1,499.00</td>
+        <td>payment against failed cancelled</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002309</strong></td>
+        <td>STL-20260927</td>
+        <td class="amount">₹4,647.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003084</strong></td>
+        <td>STL-20260927</td>
+        <td class="amount">₹299.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003446</strong></td>
+        <td>STL-20260927</td>
+        <td class="amount">₹10,998.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003879</strong></td>
+        <td>STL-20260927</td>
+        <td class="amount">₹349.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004274</strong></td>
+        <td>STL-20260927</td>
+        <td class="amount">₹12,297.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004307</strong></td>
+        <td>STL-20260927</td>
+        <td class="amount">₹499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004365</strong></td>
+        <td>STL-20260927</td>
+        <td class="amount">₹6.37</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004683</strong></td>
+        <td>STL-20260927</td>
+        <td class="amount">₹8,998.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004870</strong></td>
+        <td>STL-20260927</td>
+        <td class="amount">₹14,497.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005245</strong></td>
+        <td>STL-20260927</td>
+        <td class="amount">₹21.45</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005381</strong></td>
+        <td>STL-20260927</td>
+        <td class="amount">₹299.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000056</strong></td>
+        <td>STL-20260928</td>
+        <td class="amount">₹9,298.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000332</strong></td>
+        <td>STL-20260928</td>
+        <td class="amount">₹8,797.00</td>
+        <td>payment against failed cancelled</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000370</strong></td>
+        <td>STL-20260928</td>
+        <td class="amount">₹17.32</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000956</strong></td>
+        <td>STL-20260928</td>
+        <td class="amount">₹5,497.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001425</strong></td>
+        <td>STL-20260928</td>
+        <td class="amount">₹349.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001880</strong></td>
+        <td>STL-20260928</td>
+        <td class="amount">₹4,397.00</td>
+        <td>duplicate charge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003158</strong></td>
+        <td>STL-20260928</td>
+        <td class="amount">₹1,799.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003275</strong></td>
+        <td>STL-20260928</td>
+        <td class="amount">₹3,499.00</td>
+        <td>duplicate charge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003513</strong></td>
+        <td>STL-20260928</td>
+        <td class="amount">₹848.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003727</strong></td>
+        <td>STL-20260928</td>
+        <td class="amount">₹1,299.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004030</strong></td>
+        <td>STL-20260928</td>
+        <td class="amount">₹999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004359</strong></td>
+        <td>STL-20260928</td>
+        <td class="amount">₹1,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004489</strong></td>
+        <td>STL-20260928</td>
+        <td class="amount">₹3,798.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005735</strong></td>
+        <td>STL-20260928</td>
+        <td class="amount">₹7,999.00</td>
+        <td>payment without order</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>rfnd_PNEVYM1ELNJR</strong></td>
+        <td>STL-20260928</td>
+        <td class="amount">₹299.00</td>
+        <td>refund status mismatch</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002669</strong></td>
+        <td>STL-20260929</td>
+        <td class="amount">₹999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002778</strong></td>
+        <td>STL-20260929</td>
+        <td class="amount">₹499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003466</strong></td>
+        <td>STL-20260929</td>
+        <td class="amount">₹3,348.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003993</strong></td>
+        <td>STL-20260929</td>
+        <td class="amount">₹299.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004811</strong></td>
+        <td>STL-20260929</td>
+        <td class="amount">₹1,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005176</strong></td>
+        <td>STL-20260929</td>
+        <td class="amount">₹799.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005598</strong></td>
+        <td>STL-20260929</td>
+        <td class="amount">₹7,999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000159</strong></td>
+        <td>STL-20260930</td>
+        <td class="amount">₹7,797.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001486</strong></td>
+        <td>STL-20260930</td>
+        <td class="amount">₹4,999.00</td>
+        <td>duplicate charge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002132</strong></td>
+        <td>STL-20260930</td>
+        <td class="amount">₹4,999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003044</strong></td>
+        <td>STL-20260930</td>
+        <td class="amount">₹599.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004118</strong></td>
+        <td>STL-20260930</td>
+        <td class="amount">₹349.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004914</strong></td>
+        <td>STL-20260930</td>
+        <td class="amount">₹7,999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004928</strong></td>
+        <td>STL-20260930</td>
+        <td class="amount">₹1,799.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005544</strong></td>
+        <td>STL-20260930</td>
+        <td class="amount">₹2,999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005736</strong></td>
+        <td>STL-20260930</td>
+        <td class="amount">₹799.00</td>
+        <td>payment without order</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000958</strong></td>
+        <td>STL-20261001</td>
+        <td class="amount">₹9,498.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000961</strong></td>
+        <td>STL-20261001</td>
+        <td class="amount">₹2,998.00</td>
+        <td>payment against failed cancelled</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001167</strong></td>
+        <td>STL-20261001</td>
+        <td class="amount">₹3,298.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001254</strong></td>
+        <td>STL-20261001</td>
+        <td class="amount">₹31.77</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002922</strong></td>
+        <td>STL-20261001</td>
+        <td class="amount">₹1.77</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003300</strong></td>
+        <td>STL-20261001</td>
+        <td class="amount">₹4,999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003314</strong></td>
+        <td>STL-20261001</td>
+        <td class="amount">₹998.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003434</strong></td>
+        <td>STL-20261001</td>
+        <td class="amount">₹2.83</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420004427</strong></td>
+        <td>STL-20261001</td>
+        <td class="amount">₹2,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005246</strong></td>
+        <td>STL-20261001</td>
+        <td class="amount">₹2,999.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000300</strong></td>
+        <td>STL-20261002</td>
+        <td class="amount">₹1,947.00</td>
+        <td>duplicate charge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000563</strong></td>
+        <td>STL-20261002</td>
+        <td class="amount">₹49.54</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420000881</strong></td>
+        <td>STL-20261002</td>
+        <td class="amount">₹4,498.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001411</strong></td>
+        <td>STL-20261002</td>
+        <td class="amount">₹12,998.00</td>
+        <td>duplicate charge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001838</strong></td>
+        <td>STL-20261002</td>
+        <td class="amount">₹2,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420001944</strong></td>
+        <td>STL-20261002</td>
+        <td class="amount">₹5,498.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420002615</strong></td>
+        <td>STL-20261002</td>
+        <td class="amount">₹5,498.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003472</strong></td>
+        <td>STL-20261002</td>
+        <td class="amount">₹24.78</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420003904</strong></td>
+        <td>STL-20261002</td>
+        <td class="amount">₹3,998.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005060</strong></td>
+        <td>STL-20261002</td>
+        <td class="amount">₹19.80</td>
+        <td>mdr gst overcharge</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>pay_420005109</strong></td>
+        <td>STL-20261002</td>
+        <td class="amount">₹3,499.00</td>
+        <td>capture after refund</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>rfnd_XFV10VRTU46Y</strong></td>
+        <td>STL-20261002</td>
+        <td class="amount">₹2,697.00</td>
+        <td>refund status mismatch</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>ORD26000302</strong></td>
+        <td>—</td>
+        <td class="amount">₹3,298.00</td>
+        <td>paid order has no gateway capture</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>ORD26000454</strong></td>
+        <td>—</td>
+        <td class="amount">₹799.00</td>
+        <td>paid order has no gateway capture</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>ORD26000458</strong></td>
+        <td>—</td>
+        <td class="amount">₹599.00</td>
+        <td>paid order has no gateway capture</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>ORD26000535</strong></td>
+        <td>—</td>
+        <td class="amount">₹1,499.00</td>
+        <td>paid order has no gateway capture</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>ORD26000667</strong></td>
+        <td>—</td>
+        <td class="amount">₹1,148.00</td>
+        <td>paid order has no gateway capture</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>ORD26001222</strong></td>
+        <td>—</td>
+        <td class="amount">₹2,598.00</td>
+        <td>paid order has no gateway capture</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>ORD26001579</strong></td>
+        <td>—</td>
+        <td class="amount">₹5,298.00</td>
+        <td>paid order has no gateway capture</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>ORD26001609</strong></td>
+        <td>—</td>
+        <td class="amount">₹648.00</td>
+        <td>paid order has no gateway capture</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>ORD26002026</strong></td>
+        <td>—</td>
+        <td class="amount">₹5,998.00</td>
+        <td>paid order has no gateway capture</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>ORD26002595</strong></td>
+        <td>—</td>
+        <td class="amount">₹599.00</td>
+        <td>paid order has no gateway capture</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>ORD26002618</strong></td>
+        <td>—</td>
+        <td class="amount">₹4,999.00</td>
+        <td>paid order has no gateway capture</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>ORD26002850</strong></td>
+        <td>—</td>
+        <td class="amount">₹8,348.00</td>
+        <td>paid order has no gateway capture</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>ORD26003151</strong></td>
+        <td>—</td>
+        <td class="amount">₹299.00</td>
+        <td>paid order has no gateway capture</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>ORD26003561</strong></td>
+        <td>—</td>
+        <td class="amount">₹299.00</td>
+        <td>paid order has no gateway capture</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>ORD26003922</strong></td>
+        <td>—</td>
+        <td class="amount">₹3,499.00</td>
+        <td>paid order has no gateway capture</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>ORD26003975</strong></td>
+        <td>—</td>
+        <td class="amount">₹5,597.00</td>
+        <td>paid order has no gateway capture</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>ORD26004288</strong></td>
+        <td>—</td>
+        <td class="amount">₹3,499.00</td>
+        <td>paid order has no gateway capture</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>ORD26004711</strong></td>
+        <td>—</td>
+        <td class="amount">₹2,999.00</td>
+        <td>paid order has no gateway capture</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>ORD26005143</strong></td>
+        <td>—</td>
+        <td class="amount">₹5,497.00</td>
+        <td>paid order has no gateway capture</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>ORD26005892</strong></td>
+        <td>—</td>
+        <td class="amount">₹10,097.00</td>
+        <td>paid order has no gateway capture</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>STL-20260909</strong></td>
+        <td>STL-20260909</td>
+        <td class="amount">₹1,777.56</td>
+        <td>short paid</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>STL-20260910</strong></td>
+        <td>STL-20260910</td>
+        <td class="amount">₹3,054.13</td>
+        <td>short paid</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>STL-20260911</strong></td>
+        <td>STL-20260911</td>
+        <td class="amount">₹1,250.00</td>
+        <td>short paid</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>STL-20260912</strong></td>
+        <td>STL-20260912</td>
+        <td class="amount">₹551,074.03</td>
+        <td>missing</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>STL-20260913</strong></td>
+        <td>STL-20260913</td>
+        <td class="amount">₹3,428.81</td>
+        <td>short paid</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>STL-20260920</strong></td>
+        <td>STL-20260920</td>
+        <td class="amount">₹6,563.05</td>
+        <td>short paid</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>STL-20260926</strong></td>
+        <td>STL-20260926</td>
+        <td class="amount">₹976.60</td>
+        <td>short paid</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>STL-20260928</strong></td>
+        <td>STL-20260928</td>
+        <td class="amount">₹4,381.44</td>
+        <td>short paid</td></tr><tr><td><span class="status exception">Exception</span></td>
+        <td><strong>STL-20260930</strong></td>
+        <td>STL-20260930</td>
+        <td class="amount">₹4,981.30</td>
+        <td>short paid</td></tr></tbody></table></div></section></section>
+</main></div>
+<script>
+const search = document.getElementById('search'), filter = document.getElementById('statusFilter');
+function filterRows() { const query = search.value.toLowerCase(), status = filter.value;
+document.querySelectorAll('#batchRows tr').forEach(row => { const matchesText = row.textContent.toLowerCase().includes(query);
+const matchesStatus = status === 'all' || row.dataset.status === status; row.hidden = !(matchesText && matchesStatus); }); }
+search.addEventListener('input', filterRows); filter.addEventListener('change', filterRows);
+document.querySelectorAll('.nav-item').forEach(item => item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(nav => nav.classList.toggle('active', nav === item));
+    document.querySelectorAll('.view').forEach(view => view.classList.toggle('active', view.id === item.dataset.view));
+}));
+</script></body></html>

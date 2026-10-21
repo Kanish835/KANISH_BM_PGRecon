@@ -1,0 +1,61 @@
+{
+  "orders": 6000,
+  "transactions": 5752,
+  "paid_order_sales": 18984402.0,
+  "gateway_net_expected": 18827062.38,
+  "bank_gateway_cash_received": 16984048.56,
+  "transaction_status_counts": {
+    "matched": 5401,
+    "exception": 351
+  },
+  "settlement_status_counts": {
+    "due_in_october": 2,
+    "matched": 19,
+    "missing": 1,
+    "short_paid": 8
+  },
+  "exceptions": 381,
+  "tolerance": 0.02,
+  "issue_counts": {
+    "amount_difference": {
+      "count": 15,
+      "amount": 3145.0
+    },
+    "capture_after_refund": {
+      "count": 243,
+      "amount": 915889.0
+    },
+    "duplicate_charge": {
+      "count": 16,
+      "amount": 50925.0
+    },
+    "mdr_gst_overcharge": {
+      "count": 55,
+      "amount": 1185.2
+    },
+    "paid_order_without_payment": {
+      "count": 20,
+      "amount": 67617.0
+    },
+    "payment_against_failed_cancelled": {
+      "count": 8,
+      "amount": 28687.0
+    },
+    "payment_without_order": {
+      "count": 8,
+      "amount": 24992.0
+    },
+    "refund_status_mismatch": {
+      "count": 7,
+      "amount": 13886.0
+    },
+    "settlement_missing": {
+      "count": 1,
+      "amount": 551074.03
+    },
+    "settlement_short_paid": {
+      "count": 8,
+      "amount": 26412.89
+    }
+  }
+}

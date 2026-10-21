@@ -1,0 +1,18 @@
+CartNest payment gateway reconciliation — CFO summary
+
+Paid order sales were ₹18,984,402.00. Gateway settlement credits identified in the bank were ₹16,984,048.56, giving a sales-to-bank difference of ₹2,000,353.44. Expected gateway net settlement was ₹18,827,062.38; the unexplained gateway-to-bank gap is ₹-1,843,013.82.
+
+Largest reconciling items:
+1. ₹1,265,526.90 relates to 2 settlement batches dated in October and is a timing difference, not a loss.
+2. ₹26,412.89 is short-paid across settlement batches and should be raised with the gateway.
+3. ₹551,074.03 is the September batch with no matching bank credit and requires bank/gateway tracing.
+4. ₹1,185.20 of MDR/GST overcharges was identified across 55 transactions and should be recovered from the gateway.
+5. Duplicate captures, invalid-status captures, and paid orders without a capture are listed at record level in exceptions.csv; customer-impacting duplicate charges should be refunded after confirmation.
+
+Recommended actions:
+- Confirm October-due batches against the October bank statement.
+- Raise the short-paid and missing settlement batches with the gateway using the batch IDs.
+- Recover the calculated MDR/GST overcharges.
+- Investigate duplicate captures and payments against failed/cancelled orders before customer remediation.
+
+Pattern to monitor: UPI and Wallet transactions account for the MDR/GST overcharge exceptions; monitor fee-rule application by payment method and amount band.

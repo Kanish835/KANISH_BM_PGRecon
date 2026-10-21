@@ -1,0 +1,6 @@
+issue,records,resolution
+Mixed date formats,11787,Converted all dates to ISO YYYY-MM-DD.
+Inconsistent order references,0,Removed punctuation and upper-cased references before matching.
+Blank refund merchant references,243,Resolved refunds through original_payment_id to the original capture and order.
+Duplicate capture references,16,Retained every record and flagged additional captures as duplicate charges.
+Non-gateway bank entries,8,Excluded unrelated bank credits/debits from gateway settlement matching.

@@ -1,0 +1,14 @@
+line_type,bridge_line,amount,explanation
+detail,Paid order sales,18984402.00,Paid orders in order system
+detail,Less: paid orders without gateway capture,-67617.00,20 paid orders have no payment
+detail,Gateway amount differences on linked paid orders,-3145.00,First capture versus order amount
+detail,Duplicate capture charges,44927.00,Additional captures for the same paid order
+detail,Captures for refunded orders,915889.00,Captured before refund status
+detail,"Captures with failed, cancelled, or missing orders",53679.00,Gateway records without valid paid order
+subtotal,Gateway capture gross,19928135.00,Control total
+detail,Less: gateway refunds,-893888.00,Refund transactions
+subtotal,Gateway net before fees,19034247.00,Captures less refunds
+detail,MDR and GST retained by gateway,-207184.62,Gateway gross-to-net fees
+subtotal,Gateway net settlement expected,18827062.38,Expected bank receipts
+detail,Cash received in bank during statement period,16984048.56,Matched gateway credits only
+subtotal,Unreceived / timing difference,-1843013.82,"Includes short-paid, missing, and October-due batches"

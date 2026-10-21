@@ -1,0 +1,10 @@
+payment_method,amount_above,amount_up_to,mdr_pct,gst_on_mdr_pct
+UPI,0,2000,0.0,18
+UPI,2000,,0.3,18
+Card,0,2000,1.8,18
+Card,2000,,1.6,18
+NetBanking,0,2000,1.5,18
+NetBanking,2000,10000,1.2,18
+NetBanking,10000,,0.9,18
+Wallet,0,2000,1.9,18
+Wallet,2000,,1.7,18

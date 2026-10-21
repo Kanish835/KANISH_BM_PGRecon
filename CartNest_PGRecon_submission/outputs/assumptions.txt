@@ -1,0 +1,12 @@
+CartNest Payment Gateway Reconciliation — assumptions
+
+1. A merchant order reference is matched after upper-casing and removing punctuation.
+2. Refunds with blank merchant_order_ref are linked through original_payment_id to the original capture.
+3. A capture is expected only for a Paid order; captures against Failed or Cancelled orders are exceptions.
+4. A refund is expected for a Refunded order; the refund amount is compared with the original order amount.
+5. MDR and GST are recalculated using the first applicable rate-card band, rounded to paise at each fee component.
+6. Gateway settlement matching uses settlement_batch_id embedded in PayGate bank narrations.
+7. Bank credits without a PayGate settlement batch, including COD and marketplace receipts, are excluded from gateway settlement cash.
+8. A settlement with settlement_date in October and no September bank credit is classified as due_in_october, not missing.
+9. Differences within ₹0.02 are treated as rounding matches.
+10. The September bank statement does not include October receipts; October-due amounts remain timing differences pending the October statement.
